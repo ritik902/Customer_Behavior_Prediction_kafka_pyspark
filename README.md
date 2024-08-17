@@ -1,2 +1,2 @@
-# Customer_Behavior_Prediction_kafka_pyspark
-Worked on a project to predict customer behaviour or i can say actions like purchases, product preferences, on an e-commerce platform. I built an end-to-end data pipeline using tools like Apache Kafka, and Apache Spark to process large amounts of customer data in real time. Used PostgreSQL to store the processed data and applied machine learning models with Scikit-learn and TensorFlow to analyze customer behavior. My project aim is to provide insights that help improve customer engagement and increase sales.
+# ETL_pipeline_kafka_docker_pyspark
+Developed an ETL pipeline using Kafka and Python within Docker containers, using PySpark to process large amounts of customer data in real time. The project focused on creating a data stream with Kafka and applying predictive analytics to it.
