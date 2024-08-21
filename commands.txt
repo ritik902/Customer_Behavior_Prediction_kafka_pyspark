@@ -1,0 +1,118 @@
+docker network rm my_network
+
+docker network create my_network
+
+docker run -d --name zookeeper --network my_network -p 2181:2181 zookeeper:3.8
+
+docker run -d --name kafka --network my_network -p 9092:9092 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092 wurstmeister/kafka:2.13-2.7.0
+
+docker run -d --name mysql --network my_network -p 3307:3306 -e MYSQL_ROOT_PASSWORD=0000 -e MYSQL_DATABASE=customer_behavior mysql:latest
+
+docker run -d --name spark --network my_network -p 4040:4040 -p 8080:8080 bitnami/spark:latest
+
+now create producer.py file
+now create spark_processing.py file
+
+Copy the scripts into the Spark container:
+--> docker cp producer.py kafka:/producer.py
+--> docker cp spark_processing.py spark:/opt/bitnami/spark/spark_processing.py
+
+Place Reviews.csv in a Docker Volume:
+Create a Docker Volume:
+--> docker volume create reviews_volume
+
+Copy the CSV File into the Volume:
+--> docker run --rm -v reviews_volume:/data -v /z/IACSD/IACSD_DBDA_PROJECTS/BigData_Project_Kafka:/csv alpine cp /csv/Reviews.csv /data/
+
+(Volume Mounting:
+The -v Z:\IACSD\IACSD_DBDA_PROJECTS\BigData_Project_Kafka\final:/csv mounts the final directory to /csv inside the container.
+Copy Command:
+The cp command copies Reviews.csv from the /csv directory inside the container to the /data directory (which is backed by the reviews_volume Docker volume).)
+
+
+create a docker file with no extension:
+--> docker build -t kafka_producer_image .
+
+docker run -d --name kafka_producer --network my_network -v reviews_volume:/data kafka_producer_image
+
+
+docker exec -it spark mkdir -p /tmp/spark-checkpoint
+docker exec -it spark chmod 777 /tmp/spark-checkpoint
+
+
+docker exec -it spark mkdir -p /opt/bitnami/spark/output/final /opt/bitnami/spark/output/checkpoint
+
+
+docker exec -it kafka_producer python3 /app/producer.py
+
+docker exec -it spark /opt/bitnami/spark/bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.2 /opt/bitnami/spark/spark_processing.py
+
+
+copy from container to locally--
+
+docker cp 015458f9b7fa81ac25cd507e658347c95c02ba268c63f0e8b525b5a23a08fd9f:/opt/bitnami/spark/output/. Z:\IACSD\IACSD_DBDA_PROJECTS\BigData_Project_Kafka\final
+
+
+This setup allows you to ingest data from a CSV file using Kafka, preprocess it with PySpark, and store it in a MySQL database, all within Docker containers.
+
+
+
+
+
+
+
+
+spark location-
+docker run -it --entrypoint /bin/bash bitnami/spark:latest
+ls /opt/bitnami/spark
+
+
+update the spark_processing file-
+docker cp Z:\IACSD\IACSD_DBDA_PROJECTS\BigData_Project_Kafka\final\spark_processing.py spark:/opt/bitnami/spark/
+
+docker exec -it spark ls /opt/bitnami/spark     ---> for cross check
+
+check point directory-
+docker exec -it spark mkdir -p /tmp/spark-checkpoint
+docker exec -it spark chmod 777 /tmp/spark-checkpoint
+
+
+create output path-
+docker exec -it spark mkdir -p /opt/bitnami/spark/output/final /opt/bitnami/spark/output/checkpoint
+
+
+
+output after running successfully--
+
+24/08/13 17:59:05 INFO MicroBatchExecution: Streaming query has been idle and waiting for new data more than 10000 ms.
+24/08/13 17:59:15 INFO MicroBatchExecution: Streaming query has been idle and waiting for new data more than 10000 ms.
+
+The log message indicates that your Spark streaming query is running but has not received any new data for processing, so it’s staying idle. This is a normal behavior in a streaming application when there is no incoming data to process.
+
+
+copy from container to locally--
+
+docker cp 015458f9b7fa81ac25cd507e658347c95c02ba268c63f0e8b525b5a23a08fd9f:/opt/bitnami/spark/output/. Z:\IACSD\IACSD_DBDA_PROJECTS\BigData_Project_Kafka\final
+
+
+
+
+# List volumes
+docker volume ls
+
+# Inspect volume content
+docker run --rm -v reviews_volume:/data alpine /bin/sh -c "ls -l /data"
+docker run --rm -v reviews_volume:/data alpine /bin/sh -c "cat /data/Reviews.csv"
+
+Recheck the Mounting Command:
+
+docker run --rm -v reviews_volume:/data -v /z/IACSD/IACSD_DBDA_PROJECTS/BigData_Project_Kafka/final:/csv alpine cp /csv/Reviews.csv /data/
+
+
+
+docker stop $(docker ps -q)
+docker rm $(docker ps -a -q)
+
+
+
+
